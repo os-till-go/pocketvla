@@ -1,0 +1,36 @@
+# smoke test: 2 iterations x 2 scenarios, verifies the inwin_bonus code path runs.
+seed: 42
+data:
+  dataset_dir: dataset
+model:
+  size: 3m
+  use_aux_heads: true
+  d_model: 160
+  n_layer: 3
+  d_ff: 1024
+  ch:
+  - 24
+  - 48
+  - 72
+  - 96
+  - 96
+  extra_blocks: 4
+  act_hidden:
+  - 1280
+  - 640
+  ground_hidden: 48
+grpo:
+  ckpt: outputs_sft_3m/train/pocketvla-3m
+  test_set: dataset/test.npz
+  output_dir: outputs_grpo_smoke
+  iterations: 2
+  group_size: 8
+  lr: 2.5e-05
+  episodes: 3000
+  eval_every: 0
+  gifs: 0
+  steps_per_domain: 2
+  aux_weight: 0.5
+  kl_coef: 2.0
+  early_stop: 0
+  inwin_bonus: 0.3
