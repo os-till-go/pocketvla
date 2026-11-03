@@ -56,6 +56,7 @@ _SECTIONS = {
              "kl_coef": "grpo_kl_coef", "early_stop": "grpo_early_stop",
              "aux_weight": "grpo_aux_weight",
              "steps_per_domain": "grpo_steps_per_domain",
+             "inwin_bonus": "grpo_inwin_bonus",
              "output_dir": "grpo_train_dir"},
 }
 # `data:` yaml keys -> dataclass fields
@@ -131,6 +132,8 @@ class Config:
     grpo_early_stop: int = 10            # stop when mean reward is stuck this many iterations
     grpo_aux_weight: float = 0.5         # aux-consistency loss weight in GRPO (0 = off)
     grpo_steps_per_domain: int = 20      # gradient steps per iteration (one ID scenario each)
+    grpo_inwin_bonus: float = 0.0        # dense reward for closing the gripper while the EE is
+                                         # inside the grasp window (empty-handed). 0 = original.
     grpo_train_dir: str | None = None    # per-size GRPO artifacts root (yaml grpo.output_dir)
 
     # ---------- Inference / evaluation ----------

@@ -26,14 +26,20 @@ from .evaluate import evaluate as run_eval
 from . import visualize
 
 
-def _episode_reward(info: dict, cfg: Config) -> float:
-    """Scalarize one rollout: success dominates, speed/grasp/distance break ties."""
+def _episode_reward(info: dict, cfg: Config, in_win_closed: bool = False) -> float:
+    """Scalarize one rollout: success dominates, speed/grasp/distance break ties.
+
+    `in_win_closed` is computed in the rollout loop (the env's `info` does not
+    carry it), so it must be passed in explicitly.
+    """
     r = 0.0
     if info["success"]:
         r += 1.0
         r += 0.1 * (1.0 - min(1.0, info["steps"] / cfg.max_steps))   # faster is better
     if info["grasped_right"]:
         r += 0.2                                                     # at least grasped the right ball
+    if in_win_closed:
+        r += cfg.grpo_inwin_bonus                                    # dense: closed inside the window
     r -= 0.1 * min(1.0, info["ball_bin_dist"] / cfg.bin_radius)      # closer to the bin is better
     if info["grasped_wrong"]:
         r -= 0.3
@@ -54,6 +60,7 @@ def _rollout_group(env: Arm2DPickPlace, model: PocketVLA, device: torch.device,
         obs = env.reset_scenario(scenario)
         actions: list[np.ndarray] = []
         means: list[np.ndarray] = []
+        in_win_closed = False
         done, steps = False, 0
         while not done:
             img = torch.from_numpy(obs["image"]).permute(2, 0, 1).unsqueeze(0).to(device)
@@ -70,14 +77,20 @@ def _rollout_group(env: Arm2DPickPlace, model: PocketVLA, device: torch.device,
                 mean = torch.cat([a[0, :2].float(), a[0, 2:3].float()]).cpu().numpy()
             actions.append(action.copy())
             means.append(mean.copy())
+            # dense signal: closed the gripper while empty-handed AND inside the grasp window
+            if not in_win_closed and env.held is None:
+                d_t = float(np.hypot(*(env.ee - env.target_pos)))
+                if d_t <= cfg.grasp_thresh and action[2] > 0:
+                    in_win_closed = True
             obs, _, done, info = env.step(action)
             steps += 1
         trajectories.append(actions)
         denoised.append(means)
-        episodes.append({"reward": _episode_reward(info, cfg),
+        episodes.append({"reward": _episode_reward(info, cfg, in_win_closed),
                          "success": info["success"], "steps": steps,
                          "ball_bin": info["ball_bin_dist"],
-                         "grasped_right": info["grasped_right"]})
+                         "grasped_right": info["grasped_right"],
+                         "in_win_closed": in_win_closed})
     return episodes, trajectories, denoised
 
 
