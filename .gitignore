@@ -5,3 +5,7 @@ outputs*/
 .venv/
 *.pt
 *.npz
+
+logs/
+analysis/
+outputs_*/
