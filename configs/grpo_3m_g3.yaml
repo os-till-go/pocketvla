@@ -1,12 +1,10 @@
 # G3 — dense reward: +0.3 for closing the gripper inside the grasp window (empty-handed).
-# The ONLY difference from configs/grpo_3m_g1.yaml is `inwin_bonus: 0.3`.
+# Same training budget as G1; differs in inwin_bonus and output_dir.
 #
-# Why this term: behavior_diff.py showed the SFT failure mode is not "fails to
-# approach" (median nearest distance 0.105 vs threshold 0.09) but "oscillates next
-# to the ball and never closes inside the window" (11.5 direction reversals per
-# failed episode). The original reward only pays on final success, so these
-# failures produce ~identical rewards -> zero group advantage -> no gradient.
-# This term pays exactly the missing intermediate event.
+# Hypothesis: a bonus for an intermediate close command may help grasping.
+# Original reward already includes grasp, distance, speed and wrong-grasp terms.
+# Current bonus checks PRE-action target distance, unlike the simulator's
+# POST-joint-update nearest-ball grasp test. See docs/experiments.md for limits.
 seed: 42
 data:
   dataset_dir: dataset
